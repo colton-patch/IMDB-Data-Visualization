@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Graph Visualization Tool</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            text-align: center; /* Center aligns all inline or inline-block content of the body */
+            background-color: #f7f7f7; /* Background color for better visibility */
+        }
+
+        .title-container {
+            width: 100%;
+            padding: 5px 0; /* Vertical padding */
+            background-color: #333; /* Dark background color for the title container */
+        }
+
+        .title-container h2 {
+            margin: 0; /* Removes default margins */
+            color: #fff; /* White color for the title text */
+            font-size: 2em; /* Font size */
+        }
+        .title-container h1 {
+            margin: 0; /* Removes default margins */
+            color: #ffffff; /* White color for the title text */
+            font-size: 1em; /* Font size */
+        }
+
+
+        #graphviz {
+            width: 100%;
+            height: 80vh; /* 80% of the viewport height */
+            border-top: 1px solid #eee; /* A light border at the top */
+        }
+
+        .link-highlight{
+            stroke: rgb(20, 84, 99);
+            opacity: 1.0;
+            stroke-width: 3;
+        }
+
+        .node-highlight{
+            stroke-width: 3;
+        }
+
+    </style>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="graphview.js"></script>
+</head>
+<body>
+    <div class="title-container"><h2>IMDB Movies Graph</h2></div> 
+    <div class="title-container"><h1>Shared Cast Members</h1></div>
+
+    <div>
+        <label for="layout"><br>Graph Layout</label>
+        <select name="layout" id="layout">
+            <option value="force directed">Force directed</option>
+            <option value="circular">Circular</option>
+        </select>
+
+        <label for="showInput">&nbsp&nbsp&nbsp&nbspShow</label>
+        <select name="showInput" id="showInput">
+            <option value="all">All</option>
+            <option value="largest">Largest connected component only</option>
+        </select>
+
+        <label for="search">&nbsp&nbsp&nbsp&nbspSearch</label>
+        <input type="text" name="search" id="search">
+    </div>
+    
+
+    <div id="graphviz">
+        <svg class="col-10" id="svgGraph" style="width: 100%; height: 100%; margin-left: auto; margin: 0; padding: 0;"></svg>
+    </div>
+
+    <div id="text-info">
+        <p> Current Movie: <span id="movie-name"></span></p>
+    </div>
+
+    <div id="buttons">
+        <button id="computeStats">Compute statistics</button>
+        <button id="showText">Show Labels</button>
+    </div>
+
+    <div id="stats">
+        <p>Average Node Degree: <span id="avgDegree"></span></p>
+        <p>Number of Connected Components: <span id="numComponents"></span></p>
+        <p>Graph Density: <span id="graphDensity"></span></p>
+        <p>Diameter of Largest Connected Component: <span id="componentDiameter"></span></p>
+    </div>
+
+    <script type="module" src="index.js"></script>
+</body>
+</html>
