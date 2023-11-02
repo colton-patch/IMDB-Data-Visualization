@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,51 +11,78 @@
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
-            text-align: center; /* Center aligns all inline or inline-block content of the body */
-            background-color: #f7f7f7; /* Background color for better visibility */
+            text-align: center;
+            /* Center aligns all inline or inline-block content of the body */
+            background-color: #f7f7f7;
+            /* Background color for better visibility */
         }
 
         .title-container {
             width: 100%;
-            padding: 5px 0; /* Vertical padding */
-            background-color: #333; /* Dark background color for the title container */
+            padding: 5px 0;
+            /* Vertical padding */
+            background-color: #333;
+            /* Dark background color for the title container */
         }
 
         .title-container h2 {
-            margin: 0; /* Removes default margins */
-            color: #fff; /* White color for the title text */
-            font-size: 2em; /* Font size */
+            margin: 0;
+            /* Removes default margins */
+            color: #fff;
+            /* White color for the title text */
+            font-size: 2em;
+            /* Font size */
         }
+
         .title-container h1 {
-            margin: 0; /* Removes default margins */
-            color: #ffffff; /* White color for the title text */
-            font-size: 1em; /* Font size */
+            margin: 0;
+            /* Removes default margins */
+            color: #ffffff;
+            /* White color for the title text */
+            font-size: 1em;
+            /* Font size */
+            text-align: center;
         }
 
 
         #graphviz {
             width: 100%;
-            height: 80vh; /* 80% of the viewport height */
-            border-top: 1px solid #eee; /* A light border at the top */
+            height: 70vh;
+            /* 80% of the viewport height */
+            border-top: 1px solid #eee;
+            /* A light border at the top */
         }
 
-        .link-highlight{
-            stroke: rgb(20, 84, 99);
+        .link-highlight {
+            stroke: rgb(254, 69, 53);
             opacity: 1.0;
+            stroke-width: 4;
+        }
+
+        .node-highlight {
             stroke-width: 3;
         }
 
-        .node-highlight{
-            stroke-width: 3;
+        .noselect {
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
         }
-
     </style>
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="graphview.js"></script>
 </head>
+
 <body>
-    <div class="title-container"><h2>IMDB Movies Graph</h2></div> 
-    <div class="title-container"><h1>Shared Cast Members</h1></div>
+    <div class="title-container">
+        <h2>IMDB Movies Graph</h2>
+    </div>
+    <div class="title-container">
+        <h1>Shared Cast Members</h1>
+    </div>
 
     <div>
         <label for="layout"><br>Graph Layout</label>
@@ -69,31 +97,70 @@
             <option value="largest">Largest connected component only</option>
         </select>
 
-        <label for="search">&nbsp&nbsp&nbsp&nbspSearch</label>
+        <label for="searchSelect">&nbsp&nbsp&nbsp&nbspSearch by:</label>
+        <select name="searchSelect" id="searchSelect">
+            <option value="id">ID</option>
+            <option value="name">Name</option>
+            <option value="rank">Rank</option>
+            <option value="genre">Genre</option>
+            <option value="cast_name">Cast members</option>
+            <option value="director_name">Director</option>
+            <option value="writter_name">Writer</option>
+        </select>
         <input type="text" name="search" id="search">
     </div>
-    
+
 
     <div id="graphviz">
-        <svg class="col-10" id="svgGraph" style="width: 100%; height: 100%; margin-left: auto; margin: 0; padding: 0;"></svg>
+        <div
+            style="float: left; padding-left: 14px; padding-right: 10px; background-color: #333; color: #ffffff; font-size: 0.8em; text-align: left; width: 15%; height: 100%">
+            <div class="title-container">
+                <h1>&nbspMovie Information&nbsp</h1>
+            </div>
+            <img id="movieposter" class="center">
+            <p><b>Title:&nbsp&nbsp&nbsp</b><span id="name"></span></p>
+            <p><b>ID:&nbsp&nbsp&nbsp</b><span id="id"></span></p>
+            <p><b>Rank:&nbsp&nbsp&nbsp</b><span id="rank"></span></p>
+            <p><b>Release Year:&nbsp&nbsp&nbsp</b><span id="year"></span></p>
+            <p><b>IMDB Rating:&nbsp&nbsp&nbsp</b><span id="imdb_rating"></span></p>
+            <p><b>Runtime:&nbsp&nbsp&nbsp</b><span id="duration"></span></p>
+            <p><b>Genre:&nbsp&nbsp&nbsp</b><span id="genre"></span></p>
+            <p><b>Director:&nbsp&nbsp&nbsp</b><span id="director_name"></span></p>
+        </div>
+
+
+        <svg class="col-10" id="svgGraph"
+            style="width: 80%; height: 100%; margin-left: auto; margin: 0; float: right"></svg>
     </div>
 
-    <div id="text-info">
-        <p> Current Movie: <span id="movie-name"></span></p>
+    <div id="labelButton">
+        <div>
+            <button id="showText">Show Labels</button>
+        </div>
+
+        <select name="label" id="label">
+            <option value="id">Movie ID</option>
+            <option value="name">Movie title</option>
+            <option value="rank">Rank</option>
+            <option value="genre">Genre</option>
+            <option value="director_name">Director(s)</option>
+        </select>
     </div>
 
-    <div id="buttons">
+    <div id="statButton">
+        <br>
         <button id="computeStats">Compute statistics</button>
-        <button id="showText">Show Labels</button>
     </div>
 
     <div id="stats">
         <p>Average Node Degree: <span id="avgDegree"></span></p>
-        <p>Number of Connected Components: <span id="numComponents"></span></p>
         <p>Graph Density: <span id="graphDensity"></span></p>
+        <p>Number of Connected Components: <span id="numComponents"></span></p>
         <p>Diameter of Largest Connected Component: <span id="componentDiameter"></span></p>
+        <p>Average Shortest Path Length of Largest Connected Component: <span id="apl"></span></p>
     </div>
 
     <script type="module" src="index.js"></script>
 </body>
+
 </html>

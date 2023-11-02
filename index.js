@@ -47,13 +47,15 @@ function startGraphView(graphView) {
     // graphView.rescale();
     graphView.addClickListener();
     graphView.addDragListener();
+    graphView.addDeleteLinkListener();
+    graphView.addDeleteNodeListener();
 
     let nameButton = document.getElementById("showText");
     nameButton.remove();
     nameButton = document.createElement("button");
     nameButton.textContent = "Show Labels";
     nameButton.setAttribute("id", "showText");
-    document.getElementById("buttons").appendChild(nameButton);
+    document.getElementById("labelButton").appendChild(nameButton);
 
     nameButton.addEventListener("click", () => {
         if (graphView.textVisible === false)
@@ -109,11 +111,13 @@ function displayGraphStatistics(graphObj) {
                 let connectedComponent = newGraph.computeConnectedComponents();
                 let density = newGraph.computeGraphDensity();
                 let componentDiameter = newGraph.findGraphDiameter();
+                let apl = newGraph.computeAPL();
 
                 document.getElementById("avgDegree").innerHTML = avgDeg;
                 document.getElementById("numComponents").innerHTML = connectedComponent;
                 document.getElementById("graphDensity").innerHTML = density;
                 document.getElementById("componentDiameter").innerHTML = componentDiameter;
+                document.getElementById("apl").innerHTML = apl;
             }
 
         });

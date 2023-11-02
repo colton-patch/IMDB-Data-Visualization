@@ -6,6 +6,7 @@ class GraphView {
         //Need a deep copy so we don't modify the backend data.
         this.nodes = JSON.parse(JSON.stringify(nodes));
         this.edges = JSON.parse(JSON.stringify(edges));
+        this.edges.forEach(e => e.deleted = false);
 
         this.svg = d3.select(svgId);
 
@@ -28,6 +29,8 @@ class GraphView {
         this.currentSource = null;
         this.currentTarget = null;
         this.tmpLine = null;
+        this.mouseOverNode = null;
+        this.mouseOverLink = null;
 
         this.width = width;
         this.height = height;
@@ -38,8 +41,17 @@ class GraphView {
         this.handleLayoutChange(layoutDropdown.property("value"), 0);
         layoutDropdown.on("change", () => this.handleLayoutChange(layoutDropdown.property("value"), 150));
 
+        const labelDropdown = d3.select("#label");
+        labelDropdown.on("change", () => this.handleLabelChange());
+
         const searchInput = document.getElementById('search');
         searchInput.addEventListener('input', () => {
+            const searchText = searchInput.value;
+            this.searchFor(searchText);
+        });
+
+        const searchDropdown = document.getElementById('searchSelect');
+        searchDropdown.addEventListener('change', () => {
             const searchText = searchInput.value;
             this.searchFor(searchText);
         });
@@ -54,6 +66,9 @@ class GraphView {
     }
 
     showText() {
+        const labelDropdown = d3.select("#label");
+        const labelType = labelDropdown.property("value");
+
         this.layer1.selectAll(".names")
             .data(this.nodes, d => d.id)
             .join(
@@ -64,9 +79,10 @@ class GraphView {
                     .attr("y", d => d.y)
                     .attr("text-anchor", "middle")
                     .attr("font-size", 10)
-                    .text(d => d.name),
+                    .text(d => d[labelType]),
                 update => update.attr("x", d => d.x).attr("y", d => d.y),
             );
+
         this.textVisible = true;
     }
 
@@ -116,18 +132,21 @@ class GraphView {
         this.layer1.selectAll(".links")
             .data(this.edges, e => e.source.id + e.target.id)
             .join(
-                enter =>
-                    enter.append("line")
-                        .attr("class", "links")
-                        .attr("x1", e => e.source.x)
-                        .attr("y1", e => e.source.y)
-                        .attr("x2", e => e.target.x)
-                        .attr("y2", e => e.target.y)
-                        .attr("stroke", "black")
-                        .attr("opacity", 0.5)
-                        .attr("transform", this.zoomLevel),
+                enter=>
+                    enter.append("g").attr("class", "link-group").call(enter => {
+                        enter.append("line")
+                            .attr("class", "links")
+                            .attr("x1", e => e.source.x)
+                            .attr("y1", e => e.source.y)
+                            .attr("x2", e => e.target.x)
+                            .attr("y2", e => e.target.y)
+                            .attr("stroke-width", 1.3)
+                            .attr("stroke", "black")
+                            .attr("opacity", 0.5)
+                            .attr("transform", this.zoomLevel);
+                    }),
                 update => update,
-                exit => exit
+                exit => exit.remove()
             );
 
         this.layer1.selectAll(".nodes")
@@ -143,7 +162,7 @@ class GraphView {
                         .attr("stroke", "black")
                         .attr("transform", this.zoomLevel),
                 update => update,
-                exit => exit
+                exit => exit.remove()
             ).raise();
 
         this.sim.nodes(this.nodes);
@@ -172,13 +191,13 @@ class GraphView {
                 const numNodes = this.nodes.length;
                 const radius = Math.min(this.width, this.height) * 0.48;
                 this.sim.force("radial", d3.forceRadial(radius, this.width / 2, this.height / 2));
-            
+
                 this.nodes.forEach((node, i) => {
                     const angle = (2 * Math.PI * i) / numNodes;
                     node.x = this.width / 2 + radius * Math.cos(angle);
                     node.y = this.height / 2 + radius * Math.sin(angle);
                 });
-            
+
                 // Update edge positions for circular layout
                 this.layer1.selectAll(".links")
                     .attr("x1", e => e.source.x)
@@ -186,26 +205,35 @@ class GraphView {
                     .attr("x2", e => e.target.x)
                     .attr("y2", e => e.target.y);
             }, delay);
-        
+
         }
 
         this.draw();
     }
 
-    searchFor(id) {
-        let targetNode = this.nodes.find(node => node.id === id);
+    handleLabelChange() {
+        let resetText = false;
+        if (this.textVisible) {
+            resetText = true;
+        }
 
-        if (targetNode) {
-            this.layer1.selectAll(".nodes")
-            .attr("opacity", 0.8)
-            .filter(d => d === targetNode)
-            .attr("opacity", 1)
+        if (resetText) {
+            this.removeText();
+            this.showText();
+        }
+
+    }
+
+    searchFor(searchTerm) {
+        const searchDropdown = d3.select("#searchSelect");
+        const searchType = searchDropdown.property("value");
+
+        this.layer1.selectAll(".nodes")
+            .attr("r", this.#nodeRadius)
+            .attr("fill", "#fa9f2f")
+            .filter(d => d[searchType] === searchTerm)
             .attr("r", 8)
             .attr("fill", "red");
-
-        } else {
-            d3.selectAll(".nodes").attr("fill", "#fa9f2f").attr("r", 5).attr("opacity", 1);
-        }
     }
 
     rescale() {
@@ -251,6 +279,13 @@ class GraphView {
             let [x, y] = d3.pointer(e);
             this.nodes.push({
                 'id': this.nodes.length.toString(),
+                'name': "",
+                'rank': '',
+                'year': '',
+                'imdb_rating': '',
+                'duration': '',
+                'genre': '',
+                'director_name': '',
                 'x': x,
                 'y': y
             });
@@ -260,11 +295,14 @@ class GraphView {
 
         this.layer1.selectAll(".nodes")
             .on("click", () => { });
+
+        this.checkText();
     }
 
     addDragListener() {
         var tthis = this;
         this.layer1.selectAll(".nodes")
+            .classed("noselect", true)
             .on("mousedown", (e, d) => {
                 this.svg.on(".zoom", null);
                 this.svg.on("click", null);
@@ -285,6 +323,7 @@ class GraphView {
                     .attr("transform", this.zoomLevel);
             })
             .on("mouseover", function (e, d) {
+                tthis.mouseOverNode = d;
                 if (tthis.currentSource) {
                     tthis.currentTarget = d;
                     d3.select(this).attr("fill", "blue")
@@ -295,15 +334,42 @@ class GraphView {
                     d3.selectAll(".links").filter(e => e.source.id === d.id || e.target.id === d.id)
                         .classed("link-highlight", true);
                 }
-                document.getElementById("movie-name").innerHTML = d.name;
+
+                fetch("movie-img_links.json")
+                    .then(response => response.json())
+                    .then(jsonData => {
+                        for (const node of jsonData) {
+                            if (node.id == d.id) {
+                                document.getElementById("movieposter").src = node.small_img_link;
+                            }
+                        }
+                    });
+
+                document.getElementById("name").innerHTML = d.name;
+                document.getElementById("id").innerHTML = d.id;
+                document.getElementById("rank").innerHTML = d.rank;
+                document.getElementById("year").innerHTML = d.year;
+                document.getElementById("imdb_rating").innerHTML = d.imdb_rating;
+                document.getElementById("duration").innerHTML = d.duration;
+                document.getElementById("genre").innerHTML = d.genre;
+                document.getElementById("director_name").innerHTML = d.director_name;
 
             })
             .on("mouseout", function () {
+                tthis.mouseOverNode = null;
                 d3.select(this).attr("fill", "#fa9f2f").attr("r", 5).classed("node-highlight", false);
                 d3.selectAll(".links").classed("link-highlight", false);
                 tthis.currentTarget = null;
-                document.getElementById("movie-name").innerHTML = null;
-            });
+                document.getElementById("name").innerHTML = null;
+                document.getElementById("id").innerHTML = null;
+                document.getElementById("rank").innerHTML = null;
+                document.getElementById("year").innerHTML = null;
+                document.getElementById("imdb_rating").innerHTML = null;
+                document.getElementById("duration").innerHTML = null;
+                document.getElementById("genre").innerHTML = null;
+                document.getElementById("director_name").innerHTML = null;
+                document.getElementById("movieposter").src = "";
+            })
 
         this.svg.on("mousemove", e => {
             if (this.currentSource) {
@@ -315,7 +381,17 @@ class GraphView {
             }
         });
 
-        this.svg.on("mouseup", () => {
+        this.layer1.selectAll(".links")
+            .on("mouseover", function (e, d) {
+                d3.select(this).classed("link-highlight", true);
+                tthis.mouseOverLink = d;
+            })
+            .on("mouseout", function () {
+                d3.select(this).classed("link-highlight", false);
+                tthis.mouseOverLink = null;
+            });
+
+        this.svg.on("mouseup", (e, d) => {
             if (this.tmpLine)
                 this.tmpLine.remove();
 
@@ -350,6 +426,53 @@ class GraphView {
             this.currentSource = null;
             this.currentTarget = null;
         })
+
+        this.checkText();
+    }
+
+    addDeleteLinkListener() {
+        const tthis = this;
+
+        d3.select("body").on("keydown", function (event) {
+            if (event.key === "d" || event.key === "Delete") {
+                if (tthis.mouseOverLink) {
+                    const sourceId = tthis.mouseOverLink.source.id;
+                    const targetId = tthis.mouseOverLink.target.id;
+
+                    tthis.edges = tthis.edges.filter(e => !(e.source.id === sourceId && e.target.id === targetId));
+                    tthis.draw();
+                }
+            }
+        });
+    }
+
+    addDeleteNodeListener() {
+        const tthis = this;
+
+        d3.select("body").on("keydown", function (event) {
+            if (event.key === "d" || event.key === "Delete") {
+                if (tthis.mouseOverNode) {
+                    const nodeId = tthis.mouseOverNode.id;
+
+                    const nodeIndex = tthis.nodes.findIndex(n => n.id === nodeId);
+                    if (nodeIndex !== -1) {
+                        tthis.nodes.splice(nodeIndex, 1);
+                    }
+
+                    tthis.edges = tthis.edges.filter(e => e.source.id !== nodeId && e.target.id !== nodeId);
+                    tthis.draw();
+                }
+
+                if (tthis.mouseOverLink) {
+                    const sourceId = tthis.mouseOverLink.source.id;
+                    const targetId = tthis.mouseOverLink.target.id;
+
+                    tthis.edges = tthis.edges.filter(e => !(e.source.id === sourceId && e.target.id === targetId));
+                    tthis.draw();
+                }
+
+            }
+        });
     }
 
 }
