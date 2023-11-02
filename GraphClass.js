@@ -175,6 +175,9 @@ export default class GraphClass {
           node.cast_name = oldNode.castName;
           node.director_name = oldNode.director_name;
           node.writter_name = oldNode.writter_name;
+          node.year = oldNode.year;
+          node.duration = oldNode.duration;
+          node.imdb_rating = oldNode.imdb_rating;
         }
       }
     }
